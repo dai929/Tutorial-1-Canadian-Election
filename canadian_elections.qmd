@@ -1,0 +1,119 @@
+---
+title: "Tutorial 1 Canadian Election"
+author: "Daisy Huo"
+format: html
+editor: visual
+---
+
+```{r}
+#### Preamble ####
+# Purpose: Read in data from the 2021 Canadian Federal Election and
+# create a graph of the number of seats that each party won.
+# Author: Daisy Huo
+# Email: daisy.huo@mail.utoronto.ca
+# Date: 8 January 2024
+# Prerequisites: Know where to get Canadian elections data.
+```
+
+```{r}
+#### Workspace setup ####
+# install.packages("tidyverse")
+# install.packages("janitor")
+
+library(tidyverse)
+library(janitor)
+```
+
+To simulate our data, we need to create a dataset with two variables: \"Seat\" and \"Party\", and some values for each. In the case of \"Seat\" reasonable values would be a name of one of the 338 seats. In the case of \"Party\" reasonable values would be one of the following five: \"Liberal\", \"Conservative\", \"Bloc Québécois\", \"Green\", "New Democratic", or \"Other\".
+
+```{r}
+simulated_data <-
+  tibble(
+    # Use 1 through to 338 to represent each seat
+    "Seat" = 1:338,
+    # Randomly pick an option, with replacement, 338 times
+    "Party" = sample(
+      x = c("Liberal", "Conservative", "Bloc Québécois", "Green", "New Democratic", "Other"),
+      size = 338,
+      replace = TRUE
+    )
+  )
+
+simulated_data
+```
+
+```{r}
+#### Read in the data ####
+raw_elections_data <-
+  read_csv("Desktop/STA302 Methods of Data Analysis I/canadian_elections.csv")
+```
+
+```{r}
+# Make the names easier to type
+cleaned_elections_data <-
+  clean_names(raw_elections_data)
+
+cleaned_elections_data <-
+  cleaned_elections_data |>
+  select(
+    electoral_district_name_nom_de_circonscription,
+    elected_candidate_candidat_elu
+  )
+
+cleaned_elections_data <-
+  cleaned_elections_data |>
+  rename(
+    seat = electoral_district_name_nom_de_circonscription,
+    elected_party = elected_candidate_candidat_elu
+  )
+
+cleaned_elections_data <-
+  cleaned_elections_data |>
+  separate(
+    col = elected_candidate,
+    into = c("Other", "party"),
+    sep = "/"
+  ) |>
+  select(-Other)
+
+cleaned_elections_data <-
+  cleaned_elections_data |>
+  mutate(
+    elected_party =
+      case_match(
+        elected_party,
+        "Libéral" ~ "Liberal",
+        "Bloc Québécois" ~ "Bloc Québécois",
+        "Conservateur" ~ "Conservative",
+        "NPD-Nouveau Parti démocratique" ~ "NDP-New Democratic Party",
+        "Parti Vert" ~ "Green Party",
+        "Independent" ~ "Other",
+        "Katter's Australian Party (KAP)" ~ "Other",
+        "Centre Alliance" ~ "Other"
+      )
+  )
+
+write_csv(
+  x = cleaned_elections_data,
+  file = "cleaned_elections_data.csv"
+)
+```
+
+```{r}
+#### Read in the data ####
+cleaned_elections_data <-
+  read_csv(
+    file = "cleaned_elections_data.csv",
+    show_col_types = FALSE
+  )
+
+cleaned_elections_data |>
+  ggplot(aes(x = elected_party)) + # aes abbreviates "aesthetics" 
+  geom_bar()
+
+cleaned_elections_data |>
+  ggplot(aes(x = elected_party)) +
+  geom_bar() +
+  theme_minimal() + # Make the theme neater
+  labs(x = "Party", y = "Number of seats") # Make labels more meaningful
+```
